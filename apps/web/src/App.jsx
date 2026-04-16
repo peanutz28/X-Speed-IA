@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
 /** URL for the traveler mobile app. Points to Expo dev server locally; update to /mobile/ for production. */
-const MOBILE_APP_URL = 'http://localhost:8081'
+const MOBILE_APP_URL = '/mobile/'
+
 
 const EXPEDIA_LOGO_SRC = '/expedia%20logo.png'
 const MAIN_HERO_IMAGE_SRC = '/main%20screen%20image.jpg'
