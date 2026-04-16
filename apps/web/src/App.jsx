@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
+/** URL for the traveler mobile app. Points to Expo dev server locally; update to /mobile/ for production. */
+const MOBILE_APP_URL = 'http://localhost:8081'
+
 const EXPEDIA_LOGO_SRC = '/expedia%20logo.png'
 const MAIN_HERO_IMAGE_SRC = '/main%20screen%20image.jpg'
 const USER_INITIALS = 'JS'
@@ -1389,6 +1392,7 @@ function App() {
   const [toFixCategoryFilter, setToFixCategoryFilter] = useState(null)
   /** To-fix tab: which task is expanded on the right. */
   const [selectedToFixId, setSelectedToFixId] = useState(null)
+  const [showMobile, setShowMobile] = useState(false)
 
   const visibleIssues = useMemo(
     () => issueSeed.filter((i) => !dismissedIssueIds.includes(i.id)),
@@ -1569,6 +1573,26 @@ function App() {
     const stillVisible = toFixFilteredIssues.some((i) => i.id === selectedToFixId)
     if (!stillVisible) setSelectedToFixId(null)
   }, [toFixFilteredIssues, selectedToFixId])
+
+  if (showMobile) {
+    return (
+      <div className="mobile-fullscreen">
+        <button type="button" className="mobile-fullscreen-back" onClick={() => setShowMobile(false)}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          Back to Dashboard
+        </button>
+        <div className="phone-frame">
+          <div className="phone-top-bar"><div className="phone-notch" /></div>
+          <div className="phone-screen">
+            <iframe src={MOBILE_APP_URL} title="Traveler mobile app" className="phone-iframe" allow="microphone" />
+          </div>
+          <div className="phone-bottom-bar"><div className="phone-home-indicator" /></div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="app">
@@ -2301,6 +2325,21 @@ function App() {
           </div>
         </div>
       </nav>
+
+      {typeof window !== 'undefined' && window.self === window.top && !showMobile && (
+        <button
+          type="button"
+          className="mobile-preview-btn"
+          onClick={() => setShowMobile(true)}
+          aria-label="Preview traveler mobile app"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+            <line x1="12" y1="18" x2="12.01" y2="18" />
+          </svg>
+          <span>Traveler View</span>
+        </button>
+      )}
     </div>
   )
 }

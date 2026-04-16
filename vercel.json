@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npm run web:build",
+  "outputDirectory": "apps/web/dist",
+  "installCommand": "npm install",
+  "rewrites": [
+    { "source": "/mobile/(.*)", "destination": "/mobile/$1" },
+    { "source": "/(.*)", "destination": "/$1" }
+  ]
+}

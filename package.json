@@ -1,27 +1,27 @@
 {
-  "name": "expedia-hack-cursor",
+  "name": "x-speed-ia",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "workspaces": [
+    "apps/web",
+    "apps/mobile"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "web": "npm run dev --workspace apps/web",
+    "web:build": "npm run build --workspace apps/web",
+    "mobile": "npm run start --workspace apps/mobile",
+    "mobile:ios": "npm run ios --workspace apps/mobile",
+    "mobile:android": "npm run android --workspace apps/mobile",
+    "mobile:web": "npm run web --workspace apps/mobile",
+    "mobile:tunnel": "npm run start:tunnel --workspace apps/mobile"
   },
   "dependencies": {
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "@types/three": "^0.183.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "three": "^0.183.2"
   },
-  "devDependencies": {
-    "@eslint/js": "^9.39.4",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "eslint": "^9.39.4",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.4.0",
-    "vite": "^8.0.4"
+  "overrides": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
   }
 }
