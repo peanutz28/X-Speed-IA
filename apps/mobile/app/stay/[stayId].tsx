@@ -40,6 +40,20 @@ export default function StayDetailScreen() {
           </View>
         </View>
 
+        {/* Review banner */}
+        <TouchableOpacity
+          style={styles.reviewBanner}
+          activeOpacity={0.9}
+          onPress={() => router.push(`/review/${stay.id}` as Href)}>
+          <View style={styles.reviewLeft}>
+            <Text style={styles.reviewTitle}>How was your stay?</Text>
+            <Text style={styles.reviewSub}>Share your experience and help other travelers.</Text>
+          </View>
+          <View style={styles.reviewBtn}>
+            <Ionicons name="star" size={22} color={Luxury.white} />
+          </View>
+        </TouchableOpacity>
+
         {/* Details card */}
         <View style={styles.card}>
           <Text style={styles.cardLabel}>RESERVATION</Text>
@@ -104,20 +118,6 @@ export default function StayDetailScreen() {
               </View>
             </>
           )}
-        </TouchableOpacity>
-
-        {/* Review banner */}
-        <TouchableOpacity
-          style={styles.reviewBanner}
-          activeOpacity={0.9}
-          onPress={() => router.push(`/review/${stay.id}` as Href)}>
-          <View style={styles.reviewLeft}>
-            <Text style={styles.reviewTitle}>How was your stay?</Text>
-            <Text style={styles.reviewSub}>Share your experience and help other travelers.</Text>
-          </View>
-          <View style={styles.reviewBtn}>
-            <Ionicons name="star" size={22} color={Luxury.white} />
-          </View>
         </TouchableOpacity>
       </ScrollView>
     </View>

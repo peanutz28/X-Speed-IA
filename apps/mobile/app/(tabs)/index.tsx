@@ -42,6 +42,25 @@ export default function HomeScreen() {
           ))}
         </View>
 
+        {/* Recent stays */}
+        <Text style={styles.section}>Recent stays</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hScroll}>
+          {RECENT_STAYS_HOME.map((st) => (
+            <TouchableOpacity
+              key={st.id}
+              style={styles.stayCard}
+              activeOpacity={0.92}
+              onPress={() => router.push(`/stay/${st.id}` as Href)}>
+              <Image source={{ uri: st.image }} style={styles.stayImg} contentFit="cover" />
+              <View style={styles.stayGrad} />
+              <View style={styles.stayText}>
+                <Text style={styles.stayName}>{st.name}</Text>
+                <Text style={styles.stayDates}>{st.dates}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
         {/* Recent searches */}
         <Text style={styles.section}>Your recent searches</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hScroll}>
@@ -80,25 +99,6 @@ export default function HomeScreen() {
                   <Text style={styles.ratingNum}>{p.rating}/10</Text>
                   <Text style={styles.reviewCount}>({p.reviews.toLocaleString()})</Text>
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Recent stays */}
-        <Text style={styles.section}>Recent stays</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hScroll}>
-          {RECENT_STAYS_HOME.map((st) => (
-            <TouchableOpacity
-              key={st.id}
-              style={styles.stayCard}
-              activeOpacity={0.92}
-              onPress={() => router.push(`/stay/${st.id}` as Href)}>
-              <Image source={{ uri: st.image }} style={styles.stayImg} contentFit="cover" />
-              <View style={styles.stayGrad} />
-              <View style={styles.stayText}>
-                <Text style={styles.stayName}>{st.name}</Text>
-                <Text style={styles.stayDates}>{st.dates}</Text>
               </View>
             </TouchableOpacity>
           ))}
