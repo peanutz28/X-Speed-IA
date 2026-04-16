@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
 /** URL for the traveler mobile app. Points to Expo dev server locally; update to /mobile/ for production. */
@@ -13,8 +13,8 @@ const USER_NAME = 'John'
 const REVIEW_AVATAR_FALLBACK =
   'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=128&h=128&q=80'
 
-/** Target scroll (px) before the orb moves to the home icon; clamped to how far the page can actually scroll. */
-const HOME_CORE_SCROLL_SWITCH_PX = 520
+/** Target scroll (px) for Manage-properties nav + when the orb switches to the home icon (clamped to max scroll). */
+const HOME_CORE_SCROLL_SWITCH_PX = 400
 
 function getScrollRoot() {
   return document.scrollingElement ?? document.documentElement
@@ -512,87 +512,478 @@ const issueSeed = [
 ]
 
 const segmentScores = [
+  { id: 'business', label: 'Business travelers', score: 4.2, color: '#5b8def' },
+  { id: 'families', label: 'Families', score: 4.7, color: '#febf4f' },
+  { id: 'couples', label: 'Couples', score: 4.8, color: '#f472b6' },
+  { id: 'solo', label: 'Solo travelers', score: 4.5, color: '#00c896' },
+]
+
+/** Guest-review dimensions shown in the All reviews → category trends card. */
+const REVIEW_CATEGORY_TREND_LABELS = [
+  { id: 'wifi', label: 'WiFi' },
+  { id: 'cleanliness', label: 'Cleanliness' },
+  { id: 'service', label: 'Service' },
+  { id: 'noise', label: 'Noise' },
+  { id: 'parking', label: 'Parking' },
+  { id: 'location', label: 'Location' },
+  { id: 'price', label: 'Price' },
+  { id: 'amenities', label: 'Amenities' },
+  { id: 'safety', label: 'Safety' },
+]
+
+function categoryTrendSeed(s) {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
+  return Math.abs(h)
+}
+
+/** Normalized heights 0–1 for a small multi-month series (demo data per property + category). */
+function categorySparklineNormalized(propertyId, categoryId) {
+  const h = categoryTrendSeed(`${propertyId}:${categoryId}`)
+  const n = 8
+  const base = 0.5 + (h % 40) / 100
+  return Array.from({ length: n }, (_, i) => {
+    const t = i / Math.max(1, n - 1)
+    const wave = Math.sin((h + i * 3) * 0.11) * 0.14
+    const drift = (t - 0.45) * 0.1
+    return Math.min(0.98, Math.max(0.22, base + wave + drift))
+  })
+}
+
+const TRAVELER_REVIEW_PILL_LABEL = {
+  business: 'Business',
+  families: 'Families',
+  couples: 'Couples',
+  solo: 'Solo',
+}
+
+/** Short labels for traveler filter chips in the narrow “View all reviews” column. */
+const TRAVELER_REVIEW_FILTER_COMPACT = {
+  business: 'Bus.',
+  families: 'Fam.',
+  couples: 'Cpl.',
+  solo: 'Solo',
+}
+
+/** Sample guest reviews for the All reviews feed (segmentId matches segmentScores). */
+const guestReviewFeed = [
   {
-    id: 'business',
-    label: 'Business travelers',
-    score: 4.2,
-    color: '#5b8def',
-    sampleQuotes: [
-      {
-        initials: 'RK',
-        text: 'Loved the calm workspace and fast check-in.',
-        avatar:
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=128&h=128&q=80',
-      },
-      {
-        initials: 'ML',
-        text: 'Reliable Wi‑Fi and a real desk—rare for resorts.',
-        avatar:
-          'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=128&h=128&q=80',
-      },
-    ],
+    id: 'rv-1',
+    segmentId: 'business',
+    author: 'Robert K.',
+    rating: 5,
+    stayed: 'Apr 2026',
+    text: 'Loved the calm workspace and fast check-in. Reliable Wi‑Fi and a real desk—rare for resorts.',
+    avatar:
+      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=128&h=128&q=80',
   },
   {
-    id: 'families',
-    label: 'Families',
-    score: 4.7,
-    color: '#febf4f',
-    sampleQuotes: [
-      {
-        initials: 'JT',
-        text: "The kids lived in the pool—we'll be back next spring.",
-        avatar:
-          'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=128&h=128&q=80',
-      },
-      {
-        initials: 'LW',
-        text: 'Connecting rooms made bedtime routines so much easier.',
-        avatar:
-          'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?auto=format&fit=crop&w=128&h=128&q=80',
-      },
-    ],
+    id: 'rv-2',
+    segmentId: 'business',
+    author: 'Maria L.',
+    rating: 4,
+    stayed: 'Mar 2026',
+    text: 'Quiet floor for calls. Would like faster housekeeping on tight turnarounds.',
+    avatar:
+      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=128&h=128&q=80',
   },
   {
-    id: 'couples',
-    label: 'Couples',
-    score: 4.8,
-    color: '#f472b6',
-    sampleQuotes: [
-      {
-        initials: 'NS',
-        text: 'Sunset from the balcony felt private and special.',
-        avatar:
-          'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=128&h=128&q=80',
-      },
-      {
-        initials: 'GP',
-        text: 'Breakfast felt curated, not generic.',
-        avatar:
-          'https://images.unsplash.com/photo-1580489944761-15fc19eb2aeb?auto=format&fit=crop&w=128&h=128&q=80',
-      },
-    ],
+    id: 'rv-3',
+    segmentId: 'business',
+    author: 'Devon P.',
+    rating: 5,
+    stayed: 'Feb 2026',
+    text: 'Front desk had my key ready before I finished the sentence. Impressive.',
+    avatar:
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=128&h=128&q=80',
   },
   {
-    id: 'solo',
-    label: 'Solo travelers',
-    score: 4.5,
-    color: '#00c896',
-    sampleQuotes: [
-      {
-        initials: 'AH',
-        text: 'Felt safe walking back alone after dinner.',
-        avatar:
-          'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=128&h=128&q=80',
-      },
-      {
-        initials: 'CF',
-        text: 'Staff remembered my name by day two.',
-        avatar:
-          'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=128&h=128&q=80',
-      },
-    ],
+    id: 'rv-4',
+    segmentId: 'families',
+    author: 'Jennifer T.',
+    rating: 5,
+    stayed: 'Apr 2026',
+    text: "The kids lived in the pool—we'll be back next spring.",
+    avatar:
+      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=128&h=128&q=80',
+  },
+  {
+    id: 'rv-5',
+    segmentId: 'families',
+    author: 'Leah W.',
+    rating: 5,
+    stayed: 'Mar 2026',
+    text: 'Connecting rooms made bedtime routines so much easier.',
+    avatar:
+      'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?auto=format&fit=crop&w=128&h=128&q=80',
+  },
+  {
+    id: 'rv-6',
+    segmentId: 'families',
+    author: 'Omar H.',
+    rating: 4,
+    stayed: 'Jan 2026',
+    text: 'Great breakfast buffet; high chairs were available when we asked.',
+    avatar:
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=128&h=128&q=80',
+  },
+  {
+    id: 'rv-7',
+    segmentId: 'couples',
+    author: 'Nina S.',
+    rating: 5,
+    stayed: 'Apr 2026',
+    text: 'Sunset from the balcony felt private and special.',
+    avatar:
+      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=128&h=128&q=80',
+  },
+  {
+    id: 'rv-8',
+    segmentId: 'couples',
+    author: 'Grace P.',
+    rating: 5,
+    stayed: 'Mar 2026',
+    text: 'Breakfast felt curated, not generic. Staff remembered we were celebrating.',
+    avatar:
+      'https://images.unsplash.com/photo-1580489944761-15fc19eb2aeb?auto=format&fit=crop&w=128&h=128&q=80',
+  },
+  {
+    id: 'rv-9',
+    segmentId: 'couples',
+    author: 'Chris Y.',
+    rating: 4,
+    stayed: 'Feb 2026',
+    text: 'Spa wait time was long but the room and turndown were flawless.',
+    avatar:
+      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=128&h=128&q=80',
+  },
+  {
+    id: 'rv-10',
+    segmentId: 'solo',
+    author: 'Aisha H.',
+    rating: 5,
+    stayed: 'Mar 2026',
+    text: 'Felt safe walking back alone after dinner.',
+    avatar:
+      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=128&h=128&q=80',
+  },
+  {
+    id: 'rv-11',
+    segmentId: 'solo',
+    author: 'Claire F.',
+    rating: 5,
+    stayed: 'Feb 2026',
+    text: 'Staff remembered my name by day two. Small touches matter.',
+    avatar:
+      'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=128&h=128&q=80',
+  },
+  {
+    id: 'rv-12',
+    segmentId: 'solo',
+    author: 'Jordan M.',
+    rating: 4,
+    stayed: 'Jan 2026',
+    text: 'Solo diner at the bar was welcoming, not awkward.',
+    avatar:
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=128&h=128&q=80',
   },
 ]
+
+function travelerSegmentPillSelectedStyle(segmentColor) {
+  const hex = String(segmentColor).toLowerCase()
+  if (hex === '#febf4f') {
+    return {
+      background: segmentColor,
+      borderColor: '#ca8a04',
+      color: '#422006',
+    }
+  }
+  return {
+    background: segmentColor,
+    borderColor: segmentColor,
+    color: '#ffffff',
+  }
+}
+
+const reservationRows = [
+  {
+    id: 'r1',
+    range: 'Apr 22–25, 2026',
+    guest: 'M. Chen',
+    guestDisplay: 'Melissa Chen',
+    nights: 3,
+    rate: 289,
+    status: 'Confirmed',
+    startDate: '2026-04-22',
+    endDate: '2026-04-25',
+    avatar:
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=256&h=256&q=80',
+  },
+  {
+    id: 'r2',
+    range: 'May 2–6, 2026',
+    guest: 'A. & J. Ruiz',
+    guestDisplay: 'Ana & Javier Ruiz',
+    nights: 4,
+    rate: 312,
+    status: 'Confirmed',
+    startDate: '2026-05-02',
+    endDate: '2026-05-06',
+    avatar:
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&h=256&q=80',
+  },
+  {
+    id: 'r3',
+    range: 'May 18–19, 2026',
+    guest: 'S. Okonkwo',
+    guestDisplay: 'Samira Okonkwo',
+    nights: 1,
+    rate: 265,
+    status: 'Pending',
+    startDate: '2026-05-18',
+    endDate: '2026-05-19',
+    avatar:
+      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=256&h=256&q=80',
+  },
+]
+
+function bookingCardStatusClass(status) {
+  const key = String(status).toLowerCase()
+  if (key === 'confirmed') return 'booking-card--confirmed'
+  if (key === 'pending') return 'booking-card--pending'
+  return 'booking-card--other'
+}
+
+const CALENDAR_WEEKDAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+
+const CALENDAR_MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
+
+function parseIsoDateAtNoon(isoDate) {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  return new Date(year, month - 1, day, 12, 0, 0, 0)
+}
+
+function toIsoDateKey(year, monthIndex, day) {
+  const month = String(monthIndex + 1).padStart(2, '0')
+  const date = String(day).padStart(2, '0')
+  return `${year}-${month}-${date}`
+}
+
+function parseIsoDateKey(iso) {
+  const [y, m, d] = iso.split('-').map(Number)
+  return { year: y, monthIndex: m - 1, day: d }
+}
+
+function reservationIncludesDate(row, isoKey) {
+  const t = parseIsoDateAtNoon(isoKey).getTime()
+  const start = parseIsoDateAtNoon(row.startDate).getTime()
+  const end = parseIsoDateAtNoon(row.endDate).getTime()
+  return t >= start && t <= end
+}
+
+/** Every night booked across all reservation rows (inclusive start/end dates). */
+function getAllReservationDateKeys(rows) {
+  const keys = new Set()
+  rows.forEach((row) => {
+    let cursor = parseIsoDateAtNoon(row.startDate)
+    const end = parseIsoDateAtNoon(row.endDate)
+    while (cursor <= end) {
+      keys.add(toIsoDateKey(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()))
+      cursor.setDate(cursor.getDate() + 1)
+    }
+  })
+  return keys
+}
+
+function daysInMonth(year, monthIndex) {
+  return new Date(year, monthIndex + 1, 0).getDate()
+}
+
+function addCalendarMonths(year, monthIndex, delta) {
+  const d = new Date(year, monthIndex + delta, 1, 12, 0, 0, 0)
+  return { year: d.getFullYear(), monthIndex: d.getMonth() }
+}
+
+function buildReservationsCalendarCells(viewYear, viewMonthIndex) {
+  const firstOfMonth = new Date(viewYear, viewMonthIndex, 1, 12, 0, 0, 0)
+  const startPad = firstOfMonth.getDay()
+  const dim = daysInMonth(viewYear, viewMonthIndex)
+  const cells = []
+
+  const prevMonthLast = new Date(viewYear, viewMonthIndex, 0, 12, 0, 0, 0)
+  const prevMonthDays = prevMonthLast.getDate()
+  const prevYear = viewMonthIndex === 0 ? viewYear - 1 : viewYear
+  const prevMonthIndex = viewMonthIndex === 0 ? 11 : viewMonthIndex - 1
+
+  for (let i = 0; i < startPad; i += 1) {
+    const day = prevMonthDays - startPad + i + 1
+    cells.push({
+      kind: 'outside',
+      day,
+      year: prevYear,
+      monthIndex: prevMonthIndex,
+      key: `prev-${prevYear}-${prevMonthIndex}-${day}`,
+    })
+  }
+
+  for (let d = 1; d <= dim; d += 1) {
+    cells.push({
+      kind: 'current',
+      day: d,
+      year: viewYear,
+      monthIndex: viewMonthIndex,
+      key: toIsoDateKey(viewYear, viewMonthIndex, d),
+    })
+  }
+
+  const remainder = cells.length % 7
+  const nextCount = remainder === 0 ? 0 : 7 - remainder
+  const nextYear = viewMonthIndex === 11 ? viewYear + 1 : viewYear
+  const nextMonthIndex = viewMonthIndex === 11 ? 0 : viewMonthIndex + 1
+
+  for (let i = 1; i <= nextCount; i += 1) {
+    cells.push({
+      kind: 'outside',
+      day: i,
+      year: nextYear,
+      monthIndex: nextMonthIndex,
+      key: `next-${nextYear}-${nextMonthIndex}-${i}`,
+    })
+  }
+
+  return cells
+}
+
+function IconChevronCalendar({ dir }) {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      style={dir === 'right' ? { transform: 'scaleX(-1)' } : undefined}
+    >
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  )
+}
+
+function ReservationsCalendarWidget({ reservationRows: rows, selectedDateKey, onSelectedDateKeyChange }) {
+  const reservationKeys = useMemo(() => getAllReservationDateKeys(rows), [rows])
+
+  const { year: viewYear, monthIndex: viewMonthIndex, day: rawDay } = parseIsoDateKey(
+    selectedDateKey || rows[0]?.startDate || '2026-04-22',
+  )
+  const dim = daysInMonth(viewYear, viewMonthIndex)
+  const safeSelectedDay = Math.min(rawDay, dim)
+
+  useEffect(() => {
+    if (safeSelectedDay !== rawDay) {
+      onSelectedDateKeyChange(toIsoDateKey(viewYear, viewMonthIndex, safeSelectedDay))
+    }
+  }, [viewYear, viewMonthIndex, rawDay, safeSelectedDay, onSelectedDateKeyChange])
+
+  const cells = useMemo(
+    () => buildReservationsCalendarCells(viewYear, viewMonthIndex),
+    [viewYear, viewMonthIndex],
+  )
+
+  const monthYearLabel = `${CALENDAR_MONTH_NAMES[viewMonthIndex]} ${viewYear}`
+
+  const goPrevMonth = () => {
+    const { year: y, monthIndex: m } = addCalendarMonths(viewYear, viewMonthIndex, -1)
+    const d = Math.min(safeSelectedDay, daysInMonth(y, m))
+    onSelectedDateKeyChange(toIsoDateKey(y, m, d))
+  }
+
+  const goNextMonth = () => {
+    const { year: y, monthIndex: m } = addCalendarMonths(viewYear, viewMonthIndex, 1)
+    const d = Math.min(safeSelectedDay, daysInMonth(y, m))
+    onSelectedDateKeyChange(toIsoDateKey(y, m, d))
+  }
+
+  const onDayClick = (cell) => {
+    onSelectedDateKeyChange(toIsoDateKey(cell.year, cell.monthIndex, cell.day))
+  }
+
+  const selectedKey = toIsoDateKey(viewYear, viewMonthIndex, safeSelectedDay)
+
+  return (
+    <article
+      className="card reservations-calendar-card"
+      aria-label={`Reservation calendar, ${CALENDAR_MONTH_NAMES[viewMonthIndex]} ${viewYear}`}
+    >
+      <div className="reservations-calendar-month-nav">
+        <button
+          type="button"
+          className="reservations-calendar-month-nav-btn"
+          onClick={goPrevMonth}
+          aria-label="Previous month"
+        >
+          <IconChevronCalendar dir="left" />
+        </button>
+        <h2 className="reservations-calendar-month-heading">{monthYearLabel}</h2>
+        <button
+          type="button"
+          className="reservations-calendar-month-nav-btn"
+          onClick={goNextMonth}
+          aria-label="Next month"
+        >
+          <IconChevronCalendar dir="right" />
+        </button>
+      </div>
+
+      <div className="reservations-calendar-weekdays" aria-hidden>
+        {CALENDAR_WEEKDAY_LABELS.map((weekday) => (
+          <span key={weekday}>{weekday}</span>
+        ))}
+      </div>
+
+      <div className="reservations-calendar-grid">
+        {cells.map((cell) => {
+          const dateKey = toIsoDateKey(cell.year, cell.monthIndex, cell.day)
+          const hasReservation = reservationKeys.has(dateKey)
+          const isCurrent = cell.kind === 'current'
+          const isSelected = dateKey === selectedKey
+          return (
+            <button
+              key={cell.key}
+              type="button"
+              className={`reservations-calendar-day${cell.kind === 'outside' ? ' reservations-calendar-day--outside' : ''}${hasReservation ? ' reservations-calendar-day--booked' : ''}${isSelected ? ' reservations-calendar-day--selected' : ''}`}
+              onClick={() => onDayClick(cell)}
+              aria-label={
+                isCurrent
+                  ? `${cell.day} ${CALENDAR_MONTH_NAMES[cell.monthIndex]} ${cell.year}${hasReservation ? ', has reservation' : ''}${isSelected ? ', selected' : ''}`
+                  : `${cell.day} ${CALENDAR_MONTH_NAMES[cell.monthIndex]} ${cell.year}, other month`
+              }
+              aria-pressed={isSelected}
+            >
+              <span className="reservations-calendar-date-num">{cell.day}</span>
+            </button>
+          )
+        })}
+      </div>
+    </article>
+  )
+}
 
 function IconTrendUp() {
   return (
@@ -638,21 +1029,19 @@ function IconUpcomingCalendar() {
   )
 }
 
-function IconUpcomingClock() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" />
-    </svg>
-  )
-}
-
 function DashboardUpcomingGuestsWidget({ guest }) {
   const { guestName, partyLabel, dateLabel, checkInTime } = guest
+  const a11y = [
+    `Next arrival, ${guestName}`,
+    partyLabel,
+    `${dateLabel} at ${checkInTime}`,
+  ]
+    .filter(Boolean)
+    .join('. ')
   return (
     <div
       className="dashboard-widget-upcoming-guests dashboard-widget-minimal"
-      aria-label={`Next arrival, ${guestName}. ${dateLabel} at ${checkInTime}.`}
+      aria-label={a11y}
     >
       <div className="dashboard-widget-cluster">
         <div className="dashboard-widget-head-minimal">
@@ -664,17 +1053,14 @@ function DashboardUpcomingGuestsWidget({ guest }) {
             <p className="dashboard-minimal-hero dashboard-minimal-hero--tight">{guestName}</p>
           </div>
         </div>
-        {partyLabel ? <p className="dashboard-minimal-sub">{partyLabel}</p> : null}
       </div>
       <ul className="dashboard-minimal-rows dashboard-minimal-rows--fill">
         <li>
           <IconUpcomingCalendar aria-hidden />
-          <span>{dateLabel}</span>
-        </li>
-        <li>
-          <IconUpcomingClock aria-hidden />
-          <span>
-            Check-in <strong className="dashboard-minimal-strong">{checkInTime}</strong>
+          <span className="dashboard-upcoming-when">
+            {dateLabel}
+            <span aria-hidden> · </span>
+            <strong className="dashboard-minimal-strong">{checkInTime}</strong>
           </span>
         </li>
       </ul>
@@ -710,7 +1096,6 @@ function DashboardRevenueMonthWidget({ revenue }) {
           </span>
           <div>
             <span className="dashboard-widget-kicker">Revenue</span>
-            <p className="dashboard-minimal-sub dashboard-minimal-sub--inline">This month</p>
           </div>
         </div>
       </div>
@@ -727,6 +1112,134 @@ function IconReviewStarOutline() {
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden>
       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
     </svg>
+  )
+}
+
+/** Semicircle arc gauge: fill shows value/max (e.g. rating out of 5). */
+function RatingSemicircleGauge({ value, max = 5, fillColor, compact = false }) {
+  const pct = Math.min(1, Math.max(0, value / max))
+  const vbW = compact ? 88 : 120
+  const vbH = compact ? 46 : 68
+  const cx = compact ? 44 : 60
+  const cy = compact ? 38 : 58
+  const r = compact ? 28 : 44
+  const strokeW = compact ? 6 : 8
+  const startX = cx - r
+  const startY = cy
+  const endFullX = cx + r
+  const endFullY = cy
+  const endAngle = Math.PI + Math.PI * pct
+  const endX = cx + r * Math.cos(endAngle)
+  const endY = cy + r * Math.sin(endAngle)
+
+  return (
+    <svg
+      className={`reviews-semicircle-gauge${compact ? ' reviews-semicircle-gauge--compact' : ''}`}
+      viewBox={`0 0 ${vbW} ${vbH}`}
+      width={vbW}
+      height={vbH}
+      aria-hidden
+    >
+      <path
+        className="reviews-semicircle-gauge__track"
+        d={`M ${startX} ${startY} A ${r} ${r} 0 0 1 ${endFullX} ${endFullY}`}
+        fill="none"
+        strokeWidth={strokeW}
+        strokeLinecap="round"
+      />
+      {pct > 0 ? (
+        <path
+          className={fillColor ? undefined : 'reviews-semicircle-gauge__fill'}
+          d={`M ${startX} ${startY} A ${r} ${r} 0 0 1 ${endX} ${endY}`}
+          fill="none"
+          strokeWidth={strokeW}
+          strokeLinecap="round"
+          stroke={fillColor ?? undefined}
+        />
+      ) : null}
+    </svg>
+  )
+}
+
+function ReviewsCategoryWidgets({ propertyId }) {
+  return (
+    <div className="reviews-category-widgets-grid" role="region" aria-label="Guest scores by category">
+      {REVIEW_CATEGORY_TREND_LABELS.map((cat) => {
+        const series = categorySparklineNormalized(propertyId, cat.id)
+        const avg =
+          series.length > 0 ? series.reduce((acc, v) => acc + v, 0) / series.length : 0
+        const scoreOutOf5 = avg * 5
+        const scoreLabel = scoreOutOf5.toFixed(1)
+        const pct = Math.min(100, Math.max(0, avg * 100))
+        return (
+          <article
+            key={cat.id}
+            className="card reviews-category-pill-widget"
+            aria-label={`${cat.label}, ${scoreLabel} out of 5`}
+          >
+            <div className="reviews-category-pill-widget__head">
+              <h3 className="reviews-category-pill-widget__title">{cat.label}</h3>
+              <span className="reviews-category-pill-widget__score" title={`${scoreLabel} out of 5`}>
+                {scoreLabel}
+              </span>
+            </div>
+            <div
+              className="reviews-category-progress"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={5}
+              aria-valuenow={Number(scoreLabel)}
+              aria-valuetext={`${scoreLabel} out of 5`}
+            >
+              <div className="reviews-category-progress__fill" style={{ width: `${pct}%` }} />
+            </div>
+          </article>
+        )
+      })}
+    </div>
+  )
+}
+
+function ReviewsPageSummaryWidgets({ rating, reviewCount, segments }) {
+  const travelersTitleId = 'reviews-traveler-breakdown-title'
+
+  return (
+    <div className="reviews-top-widgets" role="region" aria-label="Review overview">
+      <article className="reviews-summary-widget reviews-summary-widget--rating">
+        <p className="reviews-summary-widget__kicker">Property rating</p>
+        <p className="reviews-summary-widget__rating">{rating.toFixed(1)}</p>
+        <p className="reviews-summary-widget__sub">out of 5 · from {reviewCount.toLocaleString()} reviews</p>
+      </article>
+
+      <article className="reviews-summary-widget reviews-summary-widget--travelers" aria-labelledby={travelersTitleId}>
+        <div className="reviews-summary-widget__travelers-chart">
+          <p id={travelersTitleId} className="reviews-summary-widget__kicker">
+            By traveler type
+          </p>
+          <div className="reviews-traveler-arcs" role="list">
+            {segments.map((seg) => (
+              <div
+                className="reviews-traveler-arc"
+                role="listitem"
+                key={seg.id}
+                aria-label={`${seg.label}, ${seg.score.toFixed(1)} out of 5`}
+              >
+                <div className="reviews-traveler-arc__gauge">
+                  <RatingSemicircleGauge value={seg.score} max={5} fillColor={seg.color} compact />
+                  <div className="reviews-traveler-arc__gauge-inset" aria-hidden>
+                    <span className="reviews-traveler-arc__score-inset">{seg.score.toFixed(1)}</span>
+                  </div>
+                  <p className="reviews-traveler-arc__scale" aria-hidden>
+                    out of 5
+                  </p>
+                </div>
+                <span className="reviews-traveler-arc__label">{seg.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </article>
+    </div>
   )
 }
 
@@ -754,16 +1267,14 @@ function DashboardReviewTrendWidget({ trend, rating }) {
         </div>
       </div>
       <div className="dashboard-widget-cluster dashboard-widget-cluster--tail">
-        <ul className="dashboard-minimal-rows">
-          <li>
-            <TrendIcon />
-            <span>{deltaLabel}</span>
-          </li>
-          <li>
-            <IconUpcomingCalendar />
-            <span>{periodLabel}</span>
-          </li>
-        </ul>
+        <p className="dashboard-review-meta">
+          <TrendIcon aria-hidden />
+          <span>
+            {deltaLabel}
+            <span aria-hidden> · </span>
+            {periodLabel}
+          </span>
+        </p>
         <p className="dashboard-review-caption">{caption}</p>
       </div>
     </div>
@@ -872,13 +1383,16 @@ function App() {
   const [resolvedIssueIds, setResolvedIssueIds] = useState([])
   const [dismissedIssueIds, setDismissedIssueIds] = useState([])
   const [dismissingIssueIds, setDismissingIssueIds] = useState([])
-  const [expandedSegments, setExpandedSegments] = useState([])
   const [listingOverlayOpen, setListingOverlayOpen] = useState(false)
-  const [showMobile, setShowMobile] = useState(false)
+  const [reviewsTravelerFilter, setReviewsTravelerFilter] = useState(null)
+  const [selectedReservationDateKey, setSelectedReservationDateKey] = useState(
+    () => reservationRows[0]?.startDate ?? '2026-04-22',
+  )
   /** To-fix tab: filter list by category (null = all). */
   const [toFixCategoryFilter, setToFixCategoryFilter] = useState(null)
   /** To-fix tab: which task is expanded on the right. */
   const [selectedToFixId, setSelectedToFixId] = useState(null)
+  const [showMobile, setShowMobile] = useState(false)
 
   const visibleIssues = useMemo(
     () => issueSeed.filter((i) => !dismissedIssueIds.includes(i.id)),
@@ -923,11 +1437,6 @@ function App() {
     }
     return visibleIssues
   }, [visibleIssues, resolvedIssueIds, toFixCategoryFilter])
-  const summaryWidgets = [
-    { id: 'reviews', label: 'Reviews this month', value: '182' },
-    { id: 'attention', label: 'Need attention', value: '3' },
-    { id: 'updates', label: 'Updates ready', value: '4' },
-  ]
   const dateLabel = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
@@ -938,6 +1447,15 @@ function App() {
     'hot-water': 'Did hot water arrive quickly when you needed it?',
     'pool-hours': 'Were the pool hours clear and easy to find?',
   }
+
+  const handleReservationDateKeyChange = useCallback((key) => {
+    setSelectedReservationDateKey(key)
+  }, [])
+
+  const reservationsForSelectedDay = useMemo(
+    () => reservationRows.filter((r) => reservationIncludesDate(r, selectedReservationDateKey)),
+    [selectedReservationDateKey],
+  )
 
   const goToProperty = (p) => {
     setActiveProperty(p)
@@ -1032,6 +1550,25 @@ function App() {
   }, [activeTab])
 
   useEffect(() => {
+    if (activeTab !== 'reviews') {
+      setReviewsTravelerFilter(null)
+    }
+  }, [activeTab])
+
+  const guestReviewsCountBySegment = useMemo(() => {
+    const counts = Object.fromEntries(segmentScores.map((s) => [s.id, 0]))
+    for (const r of guestReviewFeed) {
+      if (counts[r.segmentId] != null) counts[r.segmentId] += 1
+    }
+    return counts
+  }, [])
+
+  const filteredGuestReviews = useMemo(() => {
+    if (reviewsTravelerFilter == null) return guestReviewFeed
+    return guestReviewFeed.filter((r) => r.segmentId === reviewsTravelerFilter)
+  }, [reviewsTravelerFilter])
+
+  useEffect(() => {
     if (!selectedToFixId) return
     const stillVisible = toFixFilteredIssues.some((i) => i.id === selectedToFixId)
     if (!stillVisible) setSelectedToFixId(null)
@@ -1080,25 +1617,12 @@ function App() {
           <div className="page fade-in" key="home">
             <section className="welcome-hero">
               <img className="welcome-hero-image" src={MAIN_HERO_IMAGE_SRC} alt="Ocean sunset" />
-              <div className="welcome-hero-overlay" />
               <div className="welcome-hero-content">
                 <div className="welcome-hero-row">
                   <div className="welcome-text-block">
                     <p className="welcome-kicker">Welcome back,</p>
                     <h1 className="welcome-name">{USER_NAME}</h1>
                     <p className="welcome-date">{dateLabel}</p>
-                  </div>
-                  <div className="welcome-widget-column">
-                    <div className="welcome-widget-grid">
-                      {summaryWidgets.map((widget) => (
-                        <article className="welcome-widget" key={widget.id}>
-                          <div className="welcome-widget-inner">
-                            <span className="welcome-widget-value">{widget.value}</span>
-                            <span className="welcome-widget-label">{widget.label}</span>
-                          </div>
-                        </article>
-                      ))}
-                    </div>
                   </div>
                 </div>
               </div>
@@ -1129,13 +1653,6 @@ function App() {
                     <div className="progress-track">
                       <div className="progress-fill" style={{ width: `${p.coverage}%` }} />
                     </div>
-                    <p className="metric-label">issue resolution progress</p>
-                    <div className="progress-track progress-track-secondary">
-                      <div
-                        className="progress-fill progress-fill-secondary"
-                        style={{ width: `${Math.round((p.resolved / p.totalIssues) * 100)}%` }}
-                      />
-                    </div>
                     <p className="card-meta">
                       {p.reviews.toLocaleString()} reviews · {p.resolved} of {p.totalIssues} issues resolved
                     </p>
@@ -1161,10 +1678,10 @@ function App() {
                   <div className="detail-visual-copy">
                     <h1 className="detail-visual-title">{activeProperty.name}</h1>
                     <p className="detail-visual-meta">
-                      {activeProperty.location} · {activeProperty.rating.toFixed(1)} stars ·{' '}
-                      {activeProperty.reviews.toLocaleString()} reviews
-                    </p>
-                  </div>
+                  {activeProperty.location} · {activeProperty.rating.toFixed(1)} stars ·{' '}
+                  {activeProperty.reviews.toLocaleString()} reviews
+                </p>
+              </div>
                   <button
                     type="button"
                     className="detail-listing-fab"
@@ -1200,7 +1717,7 @@ function App() {
                   <>
                     <div
                       ref={detailTabScrollRef}
-                      className={`detail-tab-scroll${activeTab === 'overview' ? ' tab-body--dashboard-fit' : ''}`}
+                      className={`detail-tab-scroll${activeTab === 'overview' ? ' tab-body--dashboard-fit' : ''}${activeTab === 'reservations' ? ' detail-tab-scroll--reservations-fit' : ''}${activeTab === 'reviews' ? ' detail-tab-scroll--reviews-fit' : ''}`}
                     >
                       <div
                         key={activeTab}
@@ -1231,7 +1748,7 @@ function App() {
                         >
                           {activeProperty.status}
                         </span>
-                      </div>
+                  </div>
                       <div className="progress-track progress-track-coverage">
                         <div className="progress-fill" style={{ width: `${activeProperty.coverage}%` }} />
                       </div>
@@ -1265,10 +1782,10 @@ function App() {
                                   className={`dashboard-checklist-item${dismissing ? ' dashboard-checklist-item--dismissing' : ''}`}
                                   key={issue.id}
                                 >
-                                  <button
+                      <button
                                     type="button"
                                     className={`dashboard-check-circle ${resolved ? 'dashboard-check-circle--done' : ''}`}
-                                    onClick={() => {
+                        onClick={() => {
                                       if (resolved) {
                                         // Uncheck: remove from resolved list
                                         setResolvedIssueIds((prev) => prev.filter((id) => id !== issue.id))
@@ -1307,8 +1824,8 @@ function App() {
                                       disabled={dismissing}
                                     >
                                       Update listing
-                                    </button>
-                                  </div>
+                      </button>
+                    </div>
                                 </li>
                               )
                             })}
@@ -1409,10 +1926,10 @@ function App() {
                           ) : (
                             <ul className="to-fix-task-list" aria-label="To-do tasks">
                               {toFixFilteredIssues.map((issue) => {
-                                const resolved = resolvedIssueIds.includes(issue.id)
+                      const resolved = resolvedIssueIds.includes(issue.id)
                                 const dismissing = dismissingIssueIds.includes(issue.id)
                                 const active = selectedToFixId === issue.id
-                                return (
+                      return (
                                   <li key={issue.id}>
                                     <button
                                       type="button"
@@ -1461,19 +1978,19 @@ function App() {
                           <article
                             className={`card card-issue to-fix-detail-card ${resolved ? 'card-resolved' : ''}${dismissing ? ' card-issue--dismissing' : ''}`}
                           >
-                            <div className="card-row">
+                          <div className="card-row">
                               <span className="card-icon">
                                 {(() => {
                                   const Ic = iconMap[issue.icon]
                                   return Ic ? <Ic /> : null
                                 })()}
                               </span>
-                              <div>
-                                <h3 className="card-heading">{issue.title}</h3>
-                                <span className="chip">{issue.confidence}</span>
-                              </div>
+                            <div className="to-fix-detail-card-head">
+                              <h3 className="card-heading">{issue.title}</h3>
+                              <span className="chip">{issue.confidence}</span>
                             </div>
-                            <div className="quote-list">
+                          </div>
+                          <div className="quote-list">
                               {issue.quotes.map((q, quoteIdx) => (
                                 <div className="quote" key={`${issue.id}-q-${quoteIdx}`}>
                                   <img
@@ -1485,16 +2002,16 @@ function App() {
                                     loading="lazy"
                                     decoding="async"
                                   />
-                                  <p className="quote-text">&ldquo;{q.text}&rdquo;</p>
-                                  <span className="quote-date">{q.month}</span>
-                                </div>
-                              ))}
-                            </div>
-                            <p className="card-footnote">{issue.impact}</p>
-                            <div className="btn-row">
-                              <button
+                                <p className="quote-text">&ldquo;{q.text}&rdquo;</p>
+                                <span className="quote-date">{q.month}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="card-footnote">{issue.impact}</p>
+                          <div className="btn-row">
+                            <button
                                 type="button"
-                                className="btn-primary"
+                              className="btn-primary"
                                 onClick={() => {
                                   if (!resolvedIssueIds.includes(issue.id)) {
                                     setResolvedIssueIds((prev) => [...prev, issue.id])
@@ -1502,206 +2019,233 @@ function App() {
                                   }
                                 }}
                                 disabled={dismissing}
-                              >
-                                Mark as fixed
-                              </button>
-                              <button
+                            >
+                              Mark as fixed
+                            </button>
+                            <button
                                 type="button"
-                                className="btn-ghost"
+                              className="btn-ghost"
                                 onClick={() => queueIssueDismissal(issue.id)}
                                 disabled={dismissing}
                               >
                                 {dismissing ? 'Dismissing...' : 'Not applicable'}
-                              </button>
-                            </div>
-                            <p className="action-explainer">
-                              It&apos;s fixed requests confirmation from the next guest. Update listing
-                              creates a wording proposal in Listing updates.
-                            </p>
+                            </button>
+                          </div>
+                          <p className="action-explainer">
+                            It&apos;s fixed requests confirmation from the next guest. Update listing
+                            creates a wording proposal in Listing updates.
+                          </p>
                             {resolved ? (
-                              <p className="inline-confirm banner-confirm">
-                                The next guest will be asked: &quot;
-                                {followUpQuestionByIssue[issue.id]}
-                                &quot;
-                              </p>
+                            <p className="inline-confirm banner-confirm">
+                              The next guest will be asked: &quot;
+                              {followUpQuestionByIssue[issue.id]}
+                              &quot;
+                            </p>
                             ) : null}
-                          </article>
-                        )
+                        </article>
+                      )
                       })()}
-                    </div>
                   </div>
-                        </div>
+                  </div>
+                  </div>
                       </section>
                       )}
 
                       {activeTab === 'reservations' && (
                       <section
-                        className="detail-tab-pane"
+                        className="detail-tab-pane detail-tab-pane--reservations"
                         aria-label="Reservations and prices"
                       >
-                        <div className="detail-snap-section-inner">
-                  <div className="section-head">
-                    <p className="section-kicker">Bookings</p>
-                    <h2>Upcoming reservations &amp; rates</h2>
-                    <p className="lead">Confirmed stays and nightly prices for this listing</p>
+                        <div className="detail-snap-section-inner detail-snap-section-inner--reservations">
+                  <div className="reservations-layout">
+                    <ReservationsCalendarWidget
+                      reservationRows={reservationRows}
+                      selectedDateKey={selectedReservationDateKey}
+                      onSelectedDateKeyChange={handleReservationDateKeyChange}
+                    />
+                    <div className="stack reservations-bookings-stack">
+                      {reservationsForSelectedDay.length === 0 ? (
+                        <p className="reservations-bookings-empty">
+                          No reservations on this date.
+                        </p>
+                      ) : (
+                        reservationsForSelectedDay.map((row) => {
+                          const totalPaid = row.rate * row.nights
+                          const guestLabel = row.guestDisplay ?? row.guest
+                      return (
+                            <article
+                              className={`booking-card ${bookingCardStatusClass(row.status)}`}
+                              key={row.id}
+                            >
+                              <div className="booking-card-layout">
+                                <img
+                                  className="booking-card-avatar"
+                                  src={row.avatar}
+                                  alt=""
+                                />
+                                <div className="booking-card-main">
+                                  <div className="booking-card-header">
+                                    <p className="booking-card-name">{guestLabel}</p>
+                                    <span className="booking-card-status">{row.status}</span>
+                              </div>
+                                  <p className="booking-card-dates">{row.range}</p>
+                                  <div className="booking-card-footer">
+                                    <span className="booking-card-nights">
+                                      {row.nights} {row.nights === 1 ? 'night' : 'nights'}
+                                    </span>
+                                    <span className="booking-card-paid">
+                                      ${totalPaid.toLocaleString()} paid
+                                    </span>
+                              </div>
+                                </div>
+                              </div>
+                        </article>
+                      )
+                        })
+                      )}
                   </div>
-
-                  <div className="stack">
-                    {[
-                      {
-                        id: 'r1',
-                        range: 'Apr 22–25, 2026',
-                        guest: 'M. Chen',
-                        nights: 3,
-                        rate: 289,
-                        status: 'Confirmed',
-                      },
-                      {
-                        id: 'r2',
-                        range: 'May 2–6, 2026',
-                        guest: 'A. & J. Ruiz',
-                        nights: 4,
-                        rate: 312,
-                        status: 'Confirmed',
-                      },
-                      {
-                        id: 'r3',
-                        range: 'May 18–19, 2026',
-                        guest: 'S. Okonkwo',
-                        nights: 1,
-                        rate: 265,
-                        status: 'Pending',
-                      },
-                    ].map((row) => (
-                      <article className="card" key={row.id}>
-                        <div className="card-row booking-row">
-                          <div>
-                            <h3 className="card-heading">{row.range}</h3>
-                            <p className="card-footnote">{row.guest} · {row.nights} nights</p>
-                          </div>
-                          <div className="booking-row-meta">
-                            <p className="card-heading">${row.rate}/night</p>
-                            <span className="chip">{row.status}</span>
-                          </div>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
+                    </div>
                         </div>
                       </section>
                       )}
 
                       {activeTab === 'reviews' && (
                       <section
-                        className="detail-tab-pane"
+                        className="detail-tab-pane detail-tab-pane--reviews"
                         aria-label="All reviews"
                       >
-                        <div className="detail-snap-section-inner">
-                  <div className="section-head">
-                    <p className="section-kicker">Reviews</p>
-                    <h2>All guest reviews</h2>
-                    <p className="lead">
-                      {activeProperty.rating.toFixed(1)} average ·{' '}
-                      {activeProperty.reviews.toLocaleString()} total reviews for this property
-                    </p>
-                  </div>
+                        <div className="detail-snap-section-inner detail-snap-section-inner--reviews">
+                  <ReviewsPageSummaryWidgets
+                    rating={activeProperty.rating}
+                    reviewCount={activeProperty.reviews}
+                    segments={segmentScores}
+                  />
 
-                  <div className="stack">
+                  <div className="reviews-main-split">
+                    <div className="reviews-all-panel-column">
+                  <div
+                    className="reviews-all-panel to-fix-list-widget"
+                    role="region"
+                    aria-label="All guest reviews"
+                  >
+                    <div className="to-fix-list-widget-header reviews-all-panel-header">
+                      <h2 className="reviews-all-panel-title">View all reviews</h2>
+                      <div
+                        className="to-fix-pill-row"
+                        role="group"
+                        aria-label="Filter reviews by traveler type"
+                      >
+                        <button
+                          type="button"
+                          className={`to-fix-pill${reviewsTravelerFilter === null ? ' to-fix-pill--selected to-fix-pill--reviews-all' : ''}`}
+                          aria-label={`All traveler types, ${guestReviewFeed.length} reviews`}
+                          onClick={() => setReviewsTravelerFilter(null)}
+                        >
+                          All{' '}
+                          <span className="to-fix-pill-count">{guestReviewFeed.length}</span>
+                        </button>
                     {segmentScores.map((seg) => {
-                      const open = expandedSegments.includes(seg.id)
+                          const count = guestReviewsCountBySegment[seg.id] ?? 0
+                          const selected = reviewsTravelerFilter === seg.id
                       return (
-                        <article className="card card-segment" key={seg.id}>
                           <button
-                            className="segment-toggle"
+                              type="button"
+                              key={seg.id}
+                              className={`to-fix-pill${selected ? ' to-fix-pill--selected' : ''}`}
+                              aria-label={`${seg.label}, ${count} reviews`}
+                              style={
+                                selected ? travelerSegmentPillSelectedStyle(seg.color) : undefined
+                              }
                             onClick={() =>
-                              setExpandedSegments((prev) =>
-                                open
-                                  ? prev.filter((id) => id !== seg.id)
-                                  : [...prev, seg.id],
-                              )
-                            }
-                          >
-                            <span className="segment-label">{seg.label}</span>
-                            <span className="segment-score">{seg.score.toFixed(1)}</span>
+                                setReviewsTravelerFilter((f) => (f === seg.id ? null : seg.id))
+                              }
+                            >
+                              {TRAVELER_REVIEW_FILTER_COMPACT[seg.id] ??
+                                TRAVELER_REVIEW_PILL_LABEL[seg.id] ??
+                                seg.label}{' '}
+                              <span className="to-fix-pill-count">{count}</span>
                           </button>
-                          <div className="progress-track">
-                            <div
-                              className="progress-fill"
+                          )
+                        })}
+                      </div>
+                    </div>
+                    <div className="to-fix-list-widget-scroll reviews-all-panel-scroll">
+                      {filteredGuestReviews.length === 0 ? (
+                        <p className="to-fix-filter-empty">No reviews in this category.</p>
+                      ) : (
+                        <ul className="reviews-feed-list">
+                          {filteredGuestReviews.map((r) => {
+                            const seg = segmentScores.find((s) => s.id === r.segmentId)
+                            const a11yName = seg
+                              ? `Guest ${r.author}, ${seg.label}`
+                              : `Guest ${r.author}`
+                            return (
+                              <li key={r.id}>
+                                <article className="reviews-feed-item" aria-label={a11yName}>
+                                  <img
+                                    className="reviews-feed-avatar"
+                                    src={r.avatar ?? REVIEW_AVATAR_FALLBACK}
+                                    alt=""
+                                    width={36}
+                                    height={36}
+                                    loading="lazy"
+                                    decoding="async"
+                                  />
+                                  <div className="reviews-feed-body">
+                                    <span className="reviews-feed-author">{r.author}</span>
+                                    {seg ? (
+                                      <span
+                                        className="reviews-feed-tag"
                               style={{
-                                width: `${(seg.score / 5) * 100}%`,
-                                background: seg.color,
+                                          borderColor: seg.color,
+                                          color: seg.color,
+                                          background: `${seg.color}22`,
                               }}
-                            />
+                                      >
+                                        {seg.label}
+                                      </span>
+                                    ) : null}
                           </div>
-                          {open && seg.sampleQuotes?.length ? (
-                            <div className="segment-detail fade-in">
-                              <div className="quote-list">
-                                {seg.sampleQuotes.map((q, sqIdx) => (
-                                  <div className="quote quote--with-avatar-only" key={`${seg.id}-sq-${sqIdx}`}>
-                                    <img
-                                      className="quote-avatar"
-                                      src={q.avatar ?? REVIEW_AVATAR_FALLBACK}
-                                      alt={`Guest reviewer ${q.initials}`}
-                                      width={36}
-                                      height={36}
-                                      loading="lazy"
-                                      decoding="async"
-                                    />
-                                    <p className="quote-text">&ldquo;{q.text}&rdquo;</p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ) : null}
                         </article>
+                              </li>
                       )
                     })}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
                   </div>
 
-                  <div className="section-head">
-                    <h2>What changed recently</h2>
-                  </div>
-                  <div className="grid-2">
-                    <article className="card card-trend">
-                      <span className="trend-dot trend-neg" />
-                      <h3 className="card-heading">WiFi mentions are rising</h3>
-                      <p className="card-footnote">
-                        Business travelers flagged speed consistency this week.
-                      </p>
-                      <button className="btn-link">See the reviews →</button>
-                    </article>
-                    <article className="card card-trend">
-                      <span className="trend-dot trend-pos" />
-                      <h3 className="card-heading">Pool feedback is improving</h3>
-                      <p className="card-footnote">
-                        Families are noticing the updated hours and signage.
-                      </p>
-                      <button className="btn-link">See the reviews →</button>
-                    </article>
-                  </div>
+                    <div className="reviews-secondary-column">
+                  <ReviewsCategoryWidgets propertyId={activeProperty.id} />
 
                   <div className="section-head">
                     <h2>Hidden gems</h2>
                   </div>
-                  <article className="card card-gem">
+                  <article className="card reviews-hidden-gems-card">
                     <p className="card-body-text">
                       Your spa is mentioned in <strong>0 of 94 reviews</strong> — guests may not
                       know it exists.
                     </p>
-                    <div className="btn-row">
-                      <button type="button" className="btn-primary">
-                        Add to listing →
+                    <button
+                      type="button"
+                      className="btn-primary reviews-hidden-gems-cta"
+                      onClick={() => setListingOverlayOpen(true)}
+                      title="Open your listing to highlight this amenity for guests"
+                      aria-label="Open listing editor to highlight your spa for guests"
+                    >
+                      Highlight spa in listing
                       </button>
-                      <button className="btn-ghost">Create an action item →</button>
-                    </div>
                   </article>
+                  </div>
+                  </div>
                         </div>
                       </section>
                       )}
                       </div>
-                    </div>
-                  </>
-                  )}
+                  </div>
+                </>
+              )}
                 </div>
               </div>
             </div>
@@ -1764,9 +2308,9 @@ function App() {
             {navItemsDerived.map((item) => {
               const { key, label, icon: ItemIcon } = item
               const active = activeTab === key
-              return (
-                <button
-                  key={key}
+          return (
+            <button
+              key={key}
                   type="button"
                   className={`nav-item nav-item-derived ${active ? 'nav-active' : ''}`}
                   onClick={() => onDerivedNav(key)}
@@ -1775,14 +2319,13 @@ function App() {
                   tabIndex={screen === 'detail' ? 0 : -1}
                 >
                   <ItemIcon />
-                </button>
-              )
-            })}
+            </button>
+          )
+        })}
           </div>
         </div>
       </nav>
 
-      {/* ── Traveler View button — hidden when loaded inside an iframe ── */}
       {typeof window !== 'undefined' && window.self === window.top && !showMobile && (
         <button
           type="button"
