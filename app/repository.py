@@ -1,5 +1,6 @@
 """SQLite persistence for reviews, tags, actionable items, and links."""
 
+import json
 import os
 import sqlite3
 from contextlib import contextmanager
@@ -30,12 +31,18 @@ class ReviewRepository:
         "review_tag",
         "recent_review",
         "created_at",
+        "verdicts",
+        "followup_answers",
+        "voice_note_url",
     )
     REVIEW_COLUMNS = (
         ("sentiment_label", "TEXT NOT NULL DEFAULT 'neutral'"),
         ("sentiment_score", "REAL NOT NULL DEFAULT 0"),
         ("review_tag", "TEXT NOT NULL DEFAULT 'Solos'"),
         ("recent_review", "INTEGER NOT NULL DEFAULT 0"),
+        ("verdicts", "TEXT"),  # JSON string
+        ("followup_answers", "TEXT"),  # JSON string
+        ("voice_note_url", "TEXT"),
     )
     REVIEW_ACTIONABLE_LINK_COLUMNS = (
         ("link_tag", "TEXT NOT NULL DEFAULT 'general_actionable'"),
@@ -76,7 +83,10 @@ class ReviewRepository:
                     sentiment_score REAL NOT NULL,
                     review_tag TEXT NOT NULL,
                     recent_review INTEGER NOT NULL DEFAULT 0,
-                    created_at TEXT NOT NULL
+                    created_at TEXT NOT NULL,
+                    verdicts TEXT,
+                    followup_answers TEXT,
+                    voice_note_url TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS actionable_items (
@@ -123,8 +133,11 @@ class ReviewRepository:
                     sentiment_score,
                     review_tag,
                     recent_review,
-                    created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    created_at,
+                    verdicts,
+                    followup_answers,
+                    voice_note_url
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     review.user_name,
@@ -137,6 +150,9 @@ class ReviewRepository:
                     analysis.review_tag,
                     int(analysis.recent_review),
                     created_at,
+                    json.dumps(review.verdicts) if review.verdicts else None,
+                    json.dumps(review.followup_answers) if review.followup_answers else None,
+                    review.voice_note_url,
                 ),
             )
             review_id = int(cursor.lastrowid)

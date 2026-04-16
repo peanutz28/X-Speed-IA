@@ -96,11 +96,15 @@ class ReviewRequestHandler(BaseHTTPRequestHandler):
                 for amenity in payload.get("amenities", [])
                 if str(amenity).strip()
             ],
+            verdicts=payload.get("verdicts", {}),
+            followup_answers=payload.get("followup_answers", {}),
+            voice_note_url=payload.get("voice_note_url"),
         )
         missing_fields = [
             field_name
             for field_name, value in review.__dict__.items()
-            if field_name != "amenities" and not str(value).strip()
+            if field_name not in ("amenities", "verdicts", "followup_answers", "voice_note_url")
+            and not str(value).strip()
         ]
         if missing_fields:
             self._write_json(

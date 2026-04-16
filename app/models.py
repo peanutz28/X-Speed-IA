@@ -16,6 +16,9 @@ class ReviewInput:
     review_date: str
     property_name: str
     amenities: List[str] = field(default_factory=list)
+    verdicts: Dict[str, str] = field(default_factory=dict)  # category → 'like'|'dislike'|'na'
+    followup_answers: Dict[str, List[str]] = field(default_factory=dict)  # category → [reasons]
+    voice_note_url: Optional[str] = None
 
 
 @dataclass
@@ -48,6 +51,9 @@ class StoredReview:
     review_date: str
     property_name: str
     amenities: List[str] = field(default_factory=list)
+    verdicts: Dict[str, str] = field(default_factory=dict)
+    followup_answers: Dict[str, List[str]] = field(default_factory=dict)
+    voice_note_url: Optional[str] = None
 
     def to_dict(self) -> Dict[str, object]:
         return asdict(self)
