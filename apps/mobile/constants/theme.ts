@@ -1,53 +1,75 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Light Expedia-style palette — white surfaces, navy text, golden-amber accents.
+ * Matches the web dashboard (apps/web) color scheme.
  */
 
-import { Platform } from 'react-native';
+export const Luxury = {
+  bg: '#F5F6FA',
+  bgElevated: '#FFFFFF',
+  surface: '#FFFFFF',
+  surface2: '#F0F1F5',
+  border: '#E5E7EB',
+  borderSubtle: '#F0F1F5',
+  gold: '#D4960A',
+  goldBright: '#B8860B',
+  goldDim: 'rgba(212, 150, 10, 0.08)',
+  text: '#1A1A2E',
+  textSecondary: '#6B7280',
+  textMuted: '#9CA3AF',
+  accentBlue: '#1E3A5F',
+  accentBlueMuted: 'rgba(30, 58, 95, 0.08)',
+  success: '#16A34A',
+  danger: '#EF4444',
+  overlay: 'rgba(0,0,0,0.45)',
+  white: '#FFFFFF',
+  navy: '#1E3A5F',
+};
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+export const Palette = {
+  navy: '#1E3A5F',
+  blue: '#2563EB',
+  blueLight: 'rgba(37, 99, 235, 0.08)',
+  yellow: Luxury.gold,
+  white: '#FFFFFF',
+  bg: Luxury.bg,
+  card: Luxury.surface,
+  text: Luxury.text,
+  textSecondary: Luxury.textSecondary,
+  textTertiary: Luxury.textMuted,
+  border: Luxury.border,
+  red: '#EF4444',
+  green: '#16A34A',
+  greenLight: 'rgba(22, 163, 74, 0.08)',
+  orange: '#E8850C',
+  orangeLight: 'rgba(232, 133, 12, 0.08)',
+  purple: '#7C3AED',
+  purpleLight: 'rgba(124, 58, 237, 0.08)',
+};
+
+export const Fonts = {
+  regular: 'Poppins_400Regular',
+  medium: 'Poppins_500Medium',
+  semiBold: 'Poppins_600SemiBold',
+  bold: 'Poppins_700Bold',
+  rounded: 'Poppins_500Medium',
+  mono: 'Poppins_400Regular',
+};
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: Luxury.text,
+    background: Luxury.bg,
+    tint: Luxury.gold,
+    icon: Luxury.textSecondary,
+    tabIconDefault: Luxury.textMuted,
+    tabIconSelected: Luxury.gold,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    text: Luxury.text,
+    background: Luxury.bg,
+    tint: Luxury.gold,
+    icon: Luxury.textSecondary,
+    tabIconDefault: Luxury.textMuted,
+    tabIconSelected: Luxury.gold,
   },
 };
-
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-  },
-});

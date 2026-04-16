@@ -1,35 +1,57 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Luxury } from '@/constants/theme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarActiveTintColor: Luxury.navy,
+        tabBarInactiveTintColor: Luxury.textMuted,
+        tabBarLabelStyle: { fontSize: 9, fontFamily: 'Poppins_500Medium', marginBottom: 4 },
+        tabBarIconStyle: { marginTop: 4 },
+        tabBarStyle: {
+          height: 52,
+          paddingTop: 4,
+          backgroundColor: Luxury.white,
+          borderTopWidth: 1,
+          borderTopColor: Luxury.border,
+          elevation: 0,
+          shadowOpacity: 0,
+        },
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'home' : 'home-outline'} size={20} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="trips"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Trips',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'briefcase' : 'briefcase-outline'} size={20} color={color} />
+          ),
         }}
       />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={20} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
 }
