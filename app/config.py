@@ -32,8 +32,8 @@ _load_env_file(PROJECT_ROOT / ".env.local", override=True)
 
 @dataclass(frozen=True)
 class Settings:
-    openai_api_key: str = os.environ.get("OPENAI_API_KEY", "")
-    cerebras_api_key: str = os.environ.get("CEREBRAS_API_KEY", "")
+    openai_api_key: str = os.environ.get("OPENAI_API_KEY", "").strip()
+    cerebras_api_key: str = os.environ.get("CEREBRAS_API_KEY", "").strip()
     openai_model: str = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
     cerebras_model: str = os.environ.get("CEREBRAS_MODEL", "gpt-oss-120b")
     database_path: str = os.environ.get("REVIEW_DB_PATH", "./data/reviews.db")
