@@ -7,6 +7,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Luxury, Fonts } from '@/constants/theme';
 import { getStay } from '@/data/travel';
 import { LuxuryHeader } from '@/components/luxury-header';
+import { ReviewPromptBanner } from '@/components/review-prompt-banner';
 
 export default function StayDetailScreen() {
   const { stayId } = useLocalSearchParams<{ stayId: string }>();
@@ -40,19 +41,10 @@ export default function StayDetailScreen() {
           </View>
         </View>
 
-        {/* Review banner */}
-        <TouchableOpacity
+        <ReviewPromptBanner
           style={styles.reviewBanner}
-          activeOpacity={0.9}
-          onPress={() => router.push(`/review/${stay.id}` as Href)}>
-          <View style={styles.reviewLeft}>
-            <Text style={styles.reviewTitle}>How was your stay?</Text>
-            <Text style={styles.reviewSub}>Share your experience and help other travelers.</Text>
-          </View>
-          <View style={styles.reviewBtn}>
-            <Ionicons name="star" size={22} color={Luxury.white} />
-          </View>
-        </TouchableOpacity>
+          onPress={() => router.push(`/review/${stay.id}` as Href)}
+        />
 
         {/* Details card */}
         <View style={styles.card}>
@@ -191,22 +183,5 @@ const styles = StyleSheet.create({
   reviewBanner: {
     marginHorizontal: 16,
     marginTop: 20,
-    borderRadius: 18,
-    padding: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Luxury.navy,
-  },
-  reviewLeft: { flex: 1 },
-  reviewTitle: { fontFamily: Fonts.semiBold, fontSize: 17, color: '#fff' },
-  reviewSub: { fontFamily: Fonts.regular, fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 6 },
-  reviewBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: Luxury.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 14,
   },
 });

@@ -13,6 +13,7 @@ import {
   Poppins_600SemiBold,
   Poppins_700Bold,
 } from '@expo-google-fonts/poppins';
+import { InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
@@ -44,6 +45,7 @@ export default function RootLayout() {
     Poppins_500Medium,
     Poppins_600SemiBold,
     Poppins_700Bold,
+    InstrumentSerif_400Regular,
   });
 
   useEffect(() => {

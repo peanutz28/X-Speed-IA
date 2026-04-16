@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Luxury, Fonts } from '@/constants/theme';
+import { Luxury } from '@/constants/theme';
 import { IMG } from '@/data/travel';
 
 type Props = {
@@ -24,11 +24,12 @@ export function LuxuryHeader({ showBack, onBack, rightAvatar = true }: Props) {
         )}
       </View>
       <View style={styles.brand}>
-        {/* Yellow Expedia icon square */}
-        <View style={styles.logoIcon}>
-          <Ionicons name="open-outline" size={16} color={Luxury.navy} />
-        </View>
-        <Text style={styles.logoText}>Expedia</Text>
+        <Image
+          source={require('@/assets/images/expedia logo.png')}
+          style={styles.logoImage}
+          contentFit="contain"
+          accessibilityLabel="Expedia"
+        />
       </View>
       <View style={styles.side}>
         {rightAvatar ? (
@@ -71,21 +72,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    paddingHorizontal: 8,
+    minHeight: 32,
   },
-  logoIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 7,
-    backgroundColor: '#FEDD00',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoText: {
-    fontFamily: Fonts.bold,
-    fontSize: 22,
-    color: '#191E3B',
-    letterSpacing: -0.3,
+  /** Official Expedia wordmark asset (icon + “Expedia”); sized to match prior header balance. */
+  logoImage: {
+    height: 30,
+    width: 148,
+    maxWidth: '100%',
   },
   avatar: {
     width: 36,

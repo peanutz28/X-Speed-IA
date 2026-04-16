@@ -229,11 +229,11 @@ const HALF_CARD = (SCREEN_W - 64) / 2 - 32;
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Luxury.white },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 32 },
-  emptyTitle: { fontFamily: Fonts.bold, fontSize: 22, color: Luxury.text },
+  emptyTitle: { fontFamily: Fonts.instrumentSerif, fontSize: 22, color: Luxury.text },
   emptyTxt: { fontFamily: Fonts.regular, fontSize: 15, color: Luxury.textSecondary, textAlign: 'center' },
   title: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 16,
+    fontFamily: Fonts.instrumentSerif,
+    fontSize: 18,
     color: Luxury.text,
     textAlign: 'center',
     marginTop: 4,
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     bottom: 28,
     left: 24,
     right: 24,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.instrumentSerif,
     fontSize: 30,
     color: '#fff',
     textShadowColor: 'rgba(0,0,0,0.5)',

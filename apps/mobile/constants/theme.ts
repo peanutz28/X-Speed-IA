@@ -53,6 +53,8 @@ export const Fonts = {
   bold: 'Poppins_700Bold',
   rounded: 'Poppins_500Medium',
   mono: 'Poppins_400Regular',
+  /** Instrument Serif — review screens (titles / headings). */
+  instrumentSerif: 'InstrumentSerif_400Regular',
 };
 
 export const Colors = {

@@ -266,6 +266,9 @@ export const RECENT_STAYS_HOME = [
   { id: 'stay-bellagio', name: 'Bellagio Las Vegas', dates: 'Oct 5–8, 2025', image: IMG.vegas, tripId: 'vegas-oct-2025' },
 ];
 
+/** Demo: floating “leave a review” prompt on tab home opens this stay’s review flow. */
+export const SIMULATED_REVIEW_PROMPT_STAY_ID = 'stay-moon-palace';
+
 export const REVIEW_CATEGORIES: { key: string; label: string; image: string }[] = [
   { key: 'cleanliness', label: 'Cleanliness', image: IMG.cleanliness },
   { key: 'service', label: 'Service', image: IMG.service },

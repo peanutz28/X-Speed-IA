@@ -1,8 +1,39 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
-/** URL for the traveler mobile app. Points to Expo dev server locally; update to /mobile/ for production. */
-const MOBILE_APP_URL = 'https://x-speed-ia-web.vercel.app/'
+/**
+ * Expo dev server URL for the Traveler View iframe.
+ *
+ * - Set `VITE_TRAVELER_APP_URL` in `apps/web/.env` (or Vercel env) to override.
+ * - Local dashboard (localhost): defaults to http://localhost:8081 — run `npm run mobile` from repo root.
+ * - Dashboard opened via LAN IP (e.g. http://192.168.1.5:5173): uses the same host on port 8081; run Expo with LAN (`expo start --lan` / `npm run mobile`).
+ * - Phone / remote browser: `localhost` in the iframe is the phone itself → use your PC’s IP or an Expo tunnel URL in `VITE_TRAVELER_APP_URL`.
+ * - Android emulator from desktop: often `http://10.0.2.2:8081`.
+ */
+function getTravelerAppIframeSrc() {
+  const fromEnv = import.meta.env.VITE_TRAVELER_APP_URL
+  if (fromEnv != null && String(fromEnv).trim() !== '') {
+    return String(fromEnv).trim().replace(/\/$/, '')
+  }
+  if (typeof window === 'undefined') {
+    return 'http://localhost:8081'
+  }
+  const h = window.location.hostname
+  if (h === 'localhost' || h === '127.0.0.1') {
+    return 'http://localhost:8081'
+  }
+  const isPrivateLan =
+    /^192\.168\.\d{1,3}\.\d{1,3}$/.test(h) ||
+    /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h) ||
+    /^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(h)
+  if (isPrivateLan) {
+    return `http://${h}:8081`
+  }
+  // Hosted origin (e.g. Vercel): Metro is not on this host — localhost here would fail for most users.
+  return 'http://localhost:8081'
+}
+
+const TRAVELER_APP_IFRAME_SRC = getTravelerAppIframeSrc()
 
 const EXPEDIA_LOGO_SRC = '/expedia%20logo.png'
 const MAIN_HERO_IMAGE_SRC = '/main%20screen%20image.jpg'
@@ -1586,7 +1617,20 @@ function App() {
         <div className="phone-frame">
           <div className="phone-top-bar"><div className="phone-notch" /></div>
           <div className="phone-screen">
-            <iframe src={MOBILE_APP_URL} title="Traveler mobile app" className="phone-iframe" allow="microphone" />
+            <iframe
+              src={TRAVELER_APP_IFRAME_SRC}
+              title="Traveler mobile app"
+              className="phone-iframe"
+              allow="microphone"
+            />
+            <div className="traveler-iframe-hint" aria-live="polite">
+              <p className="traveler-iframe-hint__title">If this shows “connection refused”</p>
+              <p className="traveler-iframe-hint__body">
+                Start the app with <kbd>npm run mobile</kbd> from the repo root. On a phone or tablet, set{' '}
+                <kbd>VITE_TRAVELER_APP_URL</kbd> in <kbd>apps/web/.env</kbd> to your computer&apos;s IP and port (e.g.{' '}
+                <kbd>http://192.168.1.10:8081</kbd>) and use <kbd>expo start --lan</kbd>.
+              </p>
+            </div>
           </div>
           <div className="phone-bottom-bar"><div className="phone-home-indicator" /></div>
         </div>

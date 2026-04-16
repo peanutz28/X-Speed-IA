@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  heroTitle: { fontFamily: Fonts.bold, fontSize: 22, color: '#fff' },
+  heroTitle: { fontFamily: Fonts.instrumentSerif, fontSize: 22, color: '#fff' },
 
   step: {
     fontFamily: Fonts.medium,
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   },
   topicTxt: { fontFamily: Fonts.semiBold, fontSize: 13, color: Luxury.goldBright },
 
-  heading: { fontFamily: Fonts.bold, fontSize: 26, color: Luxury.text },
+  heading: { fontFamily: Fonts.instrumentSerif, fontSize: 26, color: Luxury.text },
   sub: { fontFamily: Fonts.regular, fontSize: 15, color: Luxury.textSecondary, marginTop: 8, marginBottom: 26 },
 
   option: {

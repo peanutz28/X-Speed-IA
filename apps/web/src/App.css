@@ -4188,12 +4188,45 @@ h3 { font-size: 18px; font-weight: 600; }
   flex: 1;
   background: #fff;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 .phone-iframe {
+  flex: 1;
+  min-height: 0;
   width: 100%;
-  height: 100%;
   border: none;
   display: block;
+}
+
+.traveler-iframe-hint {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  background: #f4f4f5;
+  border-top: 1px solid #e4e4e7;
+  font-size: 10px;
+  line-height: 1.4;
+  color: #52525b;
+  max-height: 92px;
+  overflow-y: auto;
+}
+.traveler-iframe-hint__title {
+  margin: 0 0 4px;
+  font-weight: 600;
+  font-size: 10px;
+  color: #3f3f46;
+}
+.traveler-iframe-hint__body {
+  margin: 0;
+}
+.traveler-iframe-hint kbd {
+  font-family: ui-monospace, monospace;
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #fff;
+  border: 1px solid #d4d4d8;
 }
 .phone-bottom-bar {
   flex-shrink: 0;
