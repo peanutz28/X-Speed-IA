@@ -11,17 +11,8 @@ import './App.css'
  * - Android emulator from desktop: often `http://10.0.2.2:8081`.
  */
 function getTravelerAppIframeSrc() {
-  const fromEnv = import.meta.env.VITE_TRAVELER_APP_URL
-  if (fromEnv != null && String(fromEnv).trim() !== '') {
-    return String(fromEnv).trim().replace(/\/$/, '')
-  }
-  if (typeof window === 'undefined') {
-    return 'http://localhost:8081'
-  }
-  const h = window.location.hostname
-  if (h === 'localhost' || h === '127.0.0.1') {
-    return 'http://localhost:8081'
-  }
+  return 'https://x-speed-ia-web.vercel.app'
+}
   const isPrivateLan =
     /^192\.168\.\d{1,3}\.\d{1,3}$/.test(h) ||
     /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h) ||
